@@ -27,5 +27,6 @@
       "node",
       "jest"
     ]
-  }
+  },
+  "exclude": ["node_modules", "dist", "test", "prisma.config.ts"]
 }

@@ -1,31 +1,49 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 
 @Injectable()
 export class TodosService {
+  constructor(private readonly prisma: PrismaService) {}
+
   create(createTodoDto: CreateTodoDto) {
-    return 'This action adds a new todo';
+    return this.prisma.todo.create({
+      data: {
+        title: createTodoDto.title,
+        completed: createTodoDto.completed ?? false,
+      },
+    });
   }
 
   findAll() {
-    return {
-      message: 'Đỗ Quốc Huy - VibeCoding',
-      name: 'Đỗ Quốc Huy',
-      age: 22,
-      description: 'adsdvsdas',
-    };
+    return this.prisma.todo.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} todo`;
+  async findOne(id: number) {
+    const todo = await this.prisma.todo.findUnique({
+      where: { id },
+    });
+    if (!todo) {
+      throw new NotFoundException(`Todo #${id} not found`);
+    }
+    return todo;
   }
 
-  update(id: number, updateTodoDto: UpdateTodoDto) {
-    return `This action updates a #${id} todo`;
+  async update(id: number, updateTodoDto: UpdateTodoDto) {
+    await this.findOne(id);
+    return this.prisma.todo.update({
+      where: { id },
+      data: updateTodoDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} todo`;
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prisma.todo.delete({
+      where: { id },
+    });
   }
 }
