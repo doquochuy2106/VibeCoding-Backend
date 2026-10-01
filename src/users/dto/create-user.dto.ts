@@ -11,17 +11,8 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Email không được để trống' })
   email: string;
   @IsNotEmpty({ message: 'Password không được để trống' })
-  passwordHash: string; // hoặc đặt tên là password nếu client gửi lên mật khẩu thô
+  password: string; // hoặc đặt tên là password nếu client gửi lên mật khẩu thô
 
-  @IsNotEmpty({ message: 'Họ và tên không được để trống' })
-  @IsString()
-  fullName: string; // Bắt buộc, bỏ dấu '?'
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
-  @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
-  @IsOptional()
-  isActive?: boolean;
+  name?: string;
+  phone?: string;
 }
