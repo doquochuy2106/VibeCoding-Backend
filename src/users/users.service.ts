@@ -44,11 +44,12 @@ export class UsersService {
     const total = await this.prisma.user.count();
 
     return {
-      page: page,
-      total: total,
-      limit: limit,
-      totalPages: Math.ceil(total / limit),
-
+      meta: {
+        page: page,
+        total: total,
+        limit: limit,
+        totalPages: Math.ceil(total / limit),
+      },
       data,
     };
 
@@ -73,6 +74,7 @@ export class UsersService {
         name: updateUserDto.name,
         phone: updateUserDto.phone,
       },
+      omit: { password: true },
     });
     return user;
   }
