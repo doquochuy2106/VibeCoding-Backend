@@ -13,6 +13,15 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Password không được để trống' })
   password: string; // hoặc đặt tên là password nếu client gửi lên mật khẩu thô
 
+  @IsOptional()
+  @IsEnum(Role, { message: 'Role không hợp lệ' })
+  role?: Role;
+
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
 }
