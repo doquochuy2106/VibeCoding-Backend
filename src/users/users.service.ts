@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FindUserDto } from './dto/find-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { table } from 'node:console';
 
 @Injectable()
 export class UsersService {
@@ -32,28 +33,152 @@ export class UsersService {
     return user;
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(queryOrPage?: FindUserDto | number, limitParam?: number) {
+    let page = 1;
+    let limit = 10;
+    let search: string | undefined;
+    let name: string | undefined;
+    let email: string | undefined;
+    let role: string | undefined;
+    let sortBy: string | undefined;
+    let sortOrder: 'asc' | 'desc' = 'desc';
+
+    if (typeof queryOrPage === 'number') {
+      page = queryOrPage > 0 ? queryOrPage : 1;
+      limit = limitParam && limitParam > 0 ? limitParam : 10;
+    } else if (queryOrPage && typeof queryOrPage === 'object') {
+      page =
+        queryOrPage.page && queryOrPage.page > 0 ? Number(queryOrPage.page) : 1;
+      limit =
+        queryOrPage.limit && queryOrPage.limit > 0
+          ? Number(queryOrPage.limit)
+          : 10;
+      search = queryOrPage.search;
+      name = queryOrPage.name;
+      email = queryOrPage.email;
+      role = queryOrPage.role;
+      sortBy = queryOrPage.sortBy || queryOrPage.sort || queryOrPage.orderBy;
+      const order = queryOrPage.sortOrder || queryOrPage.order;
+      if (order && ['asc', 'desc'].includes(order.toLowerCase())) {
+        sortOrder = order.toLowerCase() as 'asc' | 'desc';
+      }
+    }
+
     const skip = (page - 1) * limit;
 
-    const data = await this.prisma.user.findMany({
-      omit: { password: true },
-      skip: skip,
-      take: limit,
-    });
+    // 1/ Tìm kiếm theo tên, email, tìm kiếm theo role (tất cả vai trò)
+    const andConditions: Prisma.UserWhereInput[] = [];
 
-    const total = await this.prisma.user.count();
+    // Tìm kiếm chung (search) theo tên hoặc email
+    if (search && search.trim()) {
+      const keyword = search.trim();
+      const orConditions: Prisma.UserWhereInput[] = [
+        { name: { contains: keyword } },
+        { email: { contains: keyword } },
+      ];
+
+      const upperKeyword = keyword.toUpperCase();
+      if (upperKeyword === Role.ADMIN || upperKeyword === Role.CUSTOMER) {
+        orConditions.push({ role: upperKeyword as Role });
+      }
+
+      andConditions.push({ OR: orConditions });
+    }
+
+    // Tìm kiếm riêng theo tên
+    if (name && name.trim()) {
+      andConditions.push({
+        name: { contains: name.trim() },
+      });
+    }
+
+    // Tìm kiếm riêng theo email
+    if (email && email.trim()) {
+      andConditions.push({
+        email: { contains: email.trim() },
+      });
+    }
+
+    // Tìm kiếm theo role:
+    // - Nếu role là 'ALL', 'all' hoặc không truyền thì lấy tất cả vai trò
+    // - Nếu role là ADMIN hoặc CUSTOMER thì lọc theo role đó
+    if (role && role.trim()) {
+      const normalizedRole = role.trim().toUpperCase();
+      if (normalizedRole !== 'ALL') {
+        if (normalizedRole === Role.ADMIN || normalizedRole === Role.CUSTOMER) {
+          andConditions.push({ role: normalizedRole as Role });
+        }
+      }
+    }
+
+    const where: Prisma.UserWhereInput =
+      andConditions.length > 0 ? { AND: andConditions } : {};
+
+    // 2/ Sort theo ID, name, email, role, created
+    const sortFieldMapping: Record<
+      string,
+      keyof Prisma.UserOrderByWithRelationInput
+    > = {
+      id: 'id',
+      ID: 'id',
+      name: 'name',
+      email: 'email',
+      role: 'role',
+      created: 'createdAt',
+      createdAt: 'createdAt',
+      created_at: 'createdAt',
+    };
+
+    let targetSortField: keyof Prisma.UserOrderByWithRelationInput =
+      'createdAt';
+    let targetDirection: Prisma.SortOrder = sortOrder;
+
+    if (sortBy && sortBy.trim()) {
+      let rawField = sortBy.trim();
+      // Hỗ trợ định dạng "field,asc" hoặc "field:desc"
+      if (rawField.includes(',') || rawField.includes(':')) {
+        const [fieldPart, dirPart] = rawField.split(/[,:]/);
+        rawField = fieldPart.trim();
+        if (dirPart && ['asc', 'desc'].includes(dirPart.trim().toLowerCase())) {
+          targetDirection = dirPart.trim().toLowerCase() as Prisma.SortOrder;
+        }
+      }
+
+      if (sortFieldMapping[rawField]) {
+        targetSortField = sortFieldMapping[rawField];
+      } else if (sortFieldMapping[rawField.toLowerCase()]) {
+        targetSortField = sortFieldMapping[rawField.toLowerCase()];
+      }
+    }
+
+    const orderBy: Prisma.UserOrderByWithRelationInput[] = [
+      { [targetSortField]: targetDirection },
+    ];
+    // Tie-breaker ổn định phân trang
+    if (targetSortField !== 'id') {
+      orderBy.push({ id: 'desc' });
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        omit: { password: true },
+        skip,
+        take: limit,
+        orderBy,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     return {
       meta: {
-        page: page,
-        total: total,
-        limit: limit,
+        page,
+        total,
+        limit,
         totalPages: Math.ceil(total / limit),
       },
       data,
     };
-
-    // return await this.prisma.user.findMany({ omit: { password: true } });
   }
 
   async findOne(id: number) {
@@ -73,6 +198,7 @@ export class UsersService {
       data: {
         name: updateUserDto.name,
         phone: updateUserDto.phone,
+        role: updateUserDto.role,
       },
       omit: { password: true },
     });

@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "NestJS: Debug (Hot Reload)",
+      "program": "${workspaceFolder}/node_modules/@nestjs/cli/bin/nest.js",
+      "args": ["start", "--debug", "--watch"],
+      "autoAttachChildProcesses": true,
+      "restart": true,
+      "sourceMaps": true,
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "NestJS: Attach to process (Port 9229)",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true
+    }
+  ]
+}
