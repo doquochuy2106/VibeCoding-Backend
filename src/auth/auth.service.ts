@@ -28,7 +28,6 @@ export class AuthService {
   }
 
   async login(user: any) {
-    console.log('check user: ', user);
     const payload = {
       id: user.id,
       username: user.name,
@@ -37,7 +36,13 @@ export class AuthService {
     };
     const access_token = this.jwtService.sign(payload);
     return {
+      username: user.name,
       access_token: access_token,
     };
+  }
+
+  async register(createAuthDto: CreateAuthDto) {
+    const user = this.usersService.register(createAuthDto);
+    return user;
   }
 }
