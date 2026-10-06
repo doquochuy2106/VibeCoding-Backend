@@ -5,10 +5,23 @@ import { FindUserDto } from './dto/find-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { CreateAuthDto } from 'src/auth/dto/create-auth.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findUserByUsername(username: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: username }, { phone: username }],
+      },
+    });
+  }
+
+  async comparePasswordUser(UserPassword: string, hashPassword: string) {
+    return await bcrypt.compare(UserPassword, hashPassword);
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
@@ -213,5 +226,28 @@ export class UsersService {
     return await this.prisma.user.delete({
       where: { id: id },
     });
+  }
+
+  async register(createAuthDto: CreateAuthDto) {
+    const { email, password } = createAuthDto;
+    //check email
+    const userEmail = await this.prisma.user.findUnique({
+      where: { email: email },
+    });
+    if (userEmail) {
+      throw new BadRequestException(`Email ${email} đã tồn tại`);
+    }
+
+    //hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    //save user
+    const user = await this.prisma.user.create({
+      data: { ...createAuthDto, password: hashPassword },
+      omit: { password: true },
+    });
+
+    return user;
   }
 }
