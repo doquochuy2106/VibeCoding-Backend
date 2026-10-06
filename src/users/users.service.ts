@@ -10,6 +10,18 @@ import bcrypt from 'bcryptjs';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findUserByUsername(username: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: username }, { phone: username }],
+      },
+    });
+  }
+
+  async comparePasswordUser(UserPassword: string, hashPassword: string) {
+    return await bcrypt.compare(UserPassword, hashPassword);
+  }
+
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
     //check email
