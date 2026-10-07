@@ -36,9 +36,21 @@ model User {
   name     String?  
   phone  String?  
   role         Role     @default(CUSTOMER)
-   orders       Order[]
+  orders       Order[]
+  refreshTokens RefreshToken[]
   createdAt    DateTime @default(now()) 
   updatedAt    DateTime @updatedAt 
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Product {
