@@ -103,6 +103,7 @@ export class AuthService {
 
     return {
       username: user.name,
+      role: user.role,
       access_token: access_token,
       refresh_token: rawRefreshToken,
     };
@@ -170,6 +171,7 @@ export class AuthService {
 
     return {
       username: user.name,
+      role: user.role,
       access_token: access_token,
       refresh_token: newRawRefreshToken,
     };

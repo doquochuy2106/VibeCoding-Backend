@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { TodosModule } from './todos/todos.module';
 import { UsersModule } from './users/users.module';
+import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
@@ -21,6 +22,7 @@ import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
     PrismaModule,
     TodosModule,
     UsersModule,
+    ProductsModule,
     AuthModule,
   ],
   controllers: [AppController],
