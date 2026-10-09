@@ -64,6 +64,7 @@ export class AuthService {
       username: user.name,
       phone: user.phone,
       role: user.role,
+      avatar: user.avatar,
     };
     const access_token = this.jwtService.sign(payload);
 
@@ -104,6 +105,7 @@ export class AuthService {
     return {
       username: user.name,
       role: user.role,
+      avatar: user.avatar,
       access_token: access_token,
       refresh_token: rawRefreshToken,
     };

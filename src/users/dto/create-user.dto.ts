@@ -24,4 +24,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Avatar phải là chuỗi ký tự' })
+  avatar?: string;
 }

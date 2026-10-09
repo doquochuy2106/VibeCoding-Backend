@@ -8,6 +8,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { FindProductDto } from './dto/find-product.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { UploadService } from 'src/upload/upload.service';
 
 export function toSlug(str: string): string {
   return str
@@ -24,7 +25,10 @@ export function toSlug(str: string): string {
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   private async generateUniqueSlug(
     baseSlug: string,
@@ -275,7 +279,11 @@ export class ProductsService {
       data.price = new Prisma.Decimal(updateProductDto.price);
     }
     if (updateProductDto.imageUrl !== undefined) {
-      data.imageUrl = updateProductDto.imageUrl?.trim() || null;
+      const nextImageUrl = updateProductDto.imageUrl?.trim() || null;
+      if (existing.imageUrl && existing.imageUrl !== nextImageUrl) {
+        this.uploadService.deleteFile(existing.imageUrl);
+      }
+      data.imageUrl = nextImageUrl;
     }
     if (updateProductDto.quantity !== undefined) {
       data.quantity = Number(updateProductDto.quantity);
@@ -315,6 +323,10 @@ export class ProductsService {
     await this.prisma.product.delete({
       where: { id },
     });
+
+    if (product.imageUrl) {
+      this.uploadService.deleteFile(product.imageUrl);
+    }
 
     return {
       message: 'Xóa sản phẩm thành công',

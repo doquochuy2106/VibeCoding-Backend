@@ -35,6 +35,7 @@ model User {
   password     String   
   name     String?  
   phone  String?  
+  avatar String?
   role         Role     @default(CUSTOMER)
   orders       Order[]
   refreshTokens RefreshToken[]

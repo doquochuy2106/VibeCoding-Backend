@@ -6,10 +6,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { CreateAuthDto } from 'src/auth/dto/create-auth.dto';
+import { UploadService } from 'src/upload/upload.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async findUserByUsername(username: string) {
     return this.prisma.user.findFirst({
@@ -202,16 +206,28 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    const userId = await this.prisma.user.findUnique({ where: { id: id } });
-    if (!userId) {
-      throw new BadRequestException('ID không dược để trống hoặc không có');
+    const existing = await this.prisma.user.findUnique({ where: { id: id } });
+    if (!existing) {
+      throw new BadRequestException('ID không được để trống hoặc không tồn tại');
     }
+
+    if (updateUserDto.avatar !== undefined) {
+      const nextAvatar = updateUserDto.avatar?.trim() || null;
+      if (existing.avatar && existing.avatar !== nextAvatar) {
+        this.uploadService.deleteFile(existing.avatar);
+      }
+    }
+
     const user = await this.prisma.user.update({
       where: { id: id },
       data: {
         name: updateUserDto.name,
         phone: updateUserDto.phone,
         role: updateUserDto.role,
+        avatar:
+          updateUserDto.avatar !== undefined
+            ? updateUserDto.avatar?.trim() || null
+            : undefined,
       },
       omit: { password: true },
     });
@@ -219,13 +235,20 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    const userId = await this.prisma.user.findUnique({ where: { id: id } });
-    if (!userId) {
-      throw new BadRequestException('ID không dược để trống hoặc không có');
+    const existing = await this.prisma.user.findUnique({ where: { id: id } });
+    if (!existing) {
+      throw new BadRequestException('ID không được để trống hoặc không tồn tại');
     }
-    return await this.prisma.user.delete({
+
+    const deleted = await this.prisma.user.delete({
       where: { id: id },
     });
+
+    if (existing.avatar) {
+      this.uploadService.deleteFile(existing.avatar);
+    }
+
+    return deleted;
   }
 
   async register(createAuthDto: CreateAuthDto) {
