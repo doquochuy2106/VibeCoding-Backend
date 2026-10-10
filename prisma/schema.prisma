@@ -54,21 +54,34 @@ model RefreshToken {
   @@index([userId])
 }
 
-model Product {
-  id            Int         @id @default(autoincrement())
-  name          String
-   slug          String      @unique
-    description   String?     @db.Text
-    price         Decimal     @db.Decimal(12, 2)
-    imageUrl      String?
-    quantity      Int     @default(0)
-    isActive      Boolean @default(true)
-    orderItems    OrderItem[]
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-  
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  imageUrl    String?
+  products    Product[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+}
 
-@@index([isActive])
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  slug        String      @unique
+  description String?     @db.Text
+  price       Decimal     @db.Decimal(12, 2)
+  imageUrl    String?
+  quantity    Int         @default(0)
+  isActive    Boolean     @default(true)
+  categoryId  Int?        @map("category_id")
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([categoryId])
 }
 
 model Order {

@@ -52,8 +52,29 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto) {
-    const { name, slug: customSlug, price, quantity, isActive, description, imageUrl } =
-      createProductDto;
+    const {
+      name,
+      slug: customSlug,
+      price,
+      quantity,
+      isActive,
+      description,
+      imageUrl,
+      categoryId,
+    } = createProductDto;
+
+    if (!categoryId) {
+      throw new BadRequestException('Vui lòng chọn danh mục cho sản phẩm');
+    }
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: Number(categoryId) },
+    });
+    if (!category) {
+      throw new BadRequestException(
+        `Không tìm thấy danh mục với id ${categoryId}`,
+      );
+    }
 
     let finalSlug: string;
     if (customSlug && customSlug.trim()) {
@@ -79,6 +100,10 @@ export class ProductsService {
         imageUrl: imageUrl?.trim() || null,
         quantity: quantity !== undefined ? Number(quantity) : 0,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
+        categoryId: Number(categoryId),
+      },
+      include: {
+        category: true,
       },
     });
 
@@ -93,6 +118,7 @@ export class ProductsService {
     let isActiveParam: string | undefined;
     let minPrice: number | undefined;
     let maxPrice: number | undefined;
+    let categoryId: number | undefined;
     let sortBy: string | undefined;
     let sortOrder: 'asc' | 'desc' = 'desc';
 
@@ -104,6 +130,7 @@ export class ProductsService {
       isActiveParam = query.isActive;
       minPrice = query.minPrice;
       maxPrice = query.maxPrice;
+      categoryId = query.categoryId;
       sortBy = query.sortBy || query.sort || query.orderBy;
       const order = query.sortOrder || query.order;
       if (order && ['asc', 'desc'].includes(order.toLowerCase())) {
@@ -154,6 +181,11 @@ export class ProductsService {
       andConditions.push({ price: { lte: new Prisma.Decimal(maxPrice) } });
     }
 
+    // Lọc theo danh mục
+    if (categoryId !== undefined && Number(categoryId) > 0) {
+      andConditions.push({ categoryId: Number(categoryId) });
+    }
+
     const where: Prisma.ProductWhereInput =
       andConditions.length > 0 ? { AND: andConditions } : {};
 
@@ -171,6 +203,7 @@ export class ProductsService {
       stock: 'quantity',
       isActive: 'isActive',
       status: 'isActive',
+      categoryId: 'categoryId',
       createdAt: 'createdAt',
       created_at: 'createdAt',
       created: 'createdAt',
@@ -212,6 +245,9 @@ export class ProductsService {
         skip,
         take: limit,
         orderBy,
+        include: {
+          category: true,
+        },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -230,6 +266,9 @@ export class ProductsService {
   async findOne(id: number) {
     const product = await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        category: true,
+      },
     });
 
     if (!product) {
@@ -248,6 +287,20 @@ export class ProductsService {
       throw new NotFoundException(`Không tìm thấy sản phẩm với id ${id}`);
     }
 
+    if (
+      updateProductDto.categoryId !== undefined &&
+      updateProductDto.categoryId !== null
+    ) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: Number(updateProductDto.categoryId) },
+      });
+      if (!category) {
+        throw new BadRequestException(
+          `Không tìm thấy danh mục với id ${updateProductDto.categoryId}`,
+        );
+      }
+    }
+
     let finalSlug = existing.slug;
     if (updateProductDto.slug !== undefined) {
       const cleanSlug = toSlug(updateProductDto.slug.trim());
@@ -264,7 +317,7 @@ export class ProductsService {
       }
     }
 
-    const data: Prisma.ProductUpdateInput = {};
+    const data: Prisma.ProductUncheckedUpdateInput = {};
 
     if (updateProductDto.name !== undefined) {
       data.name = updateProductDto.name.trim();
@@ -291,10 +344,19 @@ export class ProductsService {
     if (updateProductDto.isActive !== undefined) {
       data.isActive = Boolean(updateProductDto.isActive);
     }
+    if (updateProductDto.categoryId !== undefined) {
+      data.categoryId =
+        updateProductDto.categoryId !== null
+          ? Number(updateProductDto.categoryId)
+          : null;
+    }
 
     const updated = await this.prisma.product.update({
       where: { id },
       data,
+      include: {
+        category: true,
+      },
     });
 
     return updated;

@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TodosModule } from './todos/todos.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
+import { CategoriesModule } from './categories/categories.module';
 import { AuthModule } from './auth/auth.module';
 import { UploadModule } from './upload/upload.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
     TodosModule,
     UsersModule,
     ProductsModule,
+    CategoriesModule,
     AuthModule,
     UploadModule,
   ],

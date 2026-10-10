@@ -23,12 +23,31 @@ export class AppService implements OnModuleInit {
   async autoSeedData() {
     this.logger.log('--- Kiểm tra dữ liệu khởi tạo (Auto Seed) ---');
     await this.seedUsersIfEmpty(100);
+    await this.seedCategoriesIfEmpty();
     await this.seedProductsIfEmpty();
 
     // ==============================================================
     // VÙNG MỞ RỘNG: Thêm các module khác sau này tại đây
     // ==============================================================
     // await this.seedOrdersIfEmpty();
+  }
+
+  /**
+   * Kiểm tra bảng Category: nếu chưa có data thì tạo 15 danh mục mẫu
+   */
+  async seedCategoriesIfEmpty() {
+    const categoryCount = await this.prisma.category.count();
+    if (categoryCount === 0) {
+      this.logger.warn(
+        'Bảng Category chưa có dữ liệu. Bắt đầu tự động tạo 15 danh mục mẫu...',
+      );
+      await this.createSampleCategories();
+    } else {
+      this.logger.log(
+        `Bảng Category đã có ${categoryCount} danh mục. Bỏ qua tạo dữ liệu fake.`,
+      );
+      await this.assignDefaultImagesToExistingCategories();
+    }
   }
 
   /**
@@ -41,6 +60,7 @@ export class AppService implements OnModuleInit {
       await this.createSampleProducts();
     } else {
       this.logger.log(`Bảng Product đã có ${productCount} sản phẩm. Bỏ qua tạo dữ liệu fake.`);
+      await this.assignDefaultCategoriesToExistingProducts();
     }
   }
 
@@ -195,10 +215,214 @@ export class AppService implements OnModuleInit {
   }
 
   /**
+   * Danh sách 15 danh mục sản phẩm mẫu chuẩn thương mại điện tử
+   */
+  private getSampleCategoriesData() {
+    return [
+      {
+        name: 'Áo thun & Polo',
+        slug: 'ao-thun-polo',
+        description:
+          'Các mẫu áo thun cổ tròn, áo polo chất liệu cotton thoáng mát, năng động.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
+      },
+      {
+        name: 'Quần Jeans & Kaki',
+        slug: 'quan-jeans-kaki',
+        description:
+          'Quần jean slimfit, quần kaki co giãn form chuẩn dành cho đi làm và dạo phố.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
+      },
+      {
+        name: 'Áo khoác & Hoodie',
+        slug: 'ao-khoac-hoodie',
+        description:
+          'Áo khoác gió, bomber, hoodie giữ ấm và chống nắng hiệu quả.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+      },
+      {
+        name: 'Giày Sneaker & Thể thao',
+        slug: 'giay-sneaker-the-thao',
+        description:
+          'Giày sneaker thời trang, giày chạy bộ êm ái chính hãng.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
+      },
+      {
+        name: 'Balo & Túi xách',
+        slug: 'balo-tui-xach',
+        description:
+          'Balo laptop chống nước, túi đeo chéo, túi tote thời trang.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
+      },
+      {
+        name: 'Đồng hồ & Trang sức',
+        slug: 'dong-ho-trang-suc',
+        description:
+          'Đồng hồ thể thao, đồng hồ kim thanh lịch và phụ kiện trang sức.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
+      },
+      {
+        name: 'Mắt kính thời trang',
+        slug: 'mat-kinh-thoi-trang',
+        description:
+          'Kính mát chống tia UV400, gọng kính cận titan siêu nhẹ.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80',
+      },
+      {
+        name: 'Ví da & Thắt lưng',
+        slug: 'vi-da-that-lung',
+        description:
+          'Ví da bò thật 100%, thắt lưng da cao cấp sang trọng.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&q=80',
+      },
+      {
+        name: 'Áo sơ mi công sở',
+        slug: 'ao-so-mi-cong-so',
+        description:
+          'Áo sơ mi chống nhăn, form dáng lịch lãm cho dân văn phòng.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
+      },
+      {
+        name: 'Đồ thể thao & Gym',
+        slug: 'do-the-thao-gym',
+        description:
+          'Quần áo tập gym, chạy bộ thấm hút mồ hôi và co giãn 4 chiều.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&q=80',
+      },
+      {
+        name: 'Mũ nón & Khăn choàng',
+        slug: 'mu-non-khan-choang',
+        description:
+          'Mũ lưỡi trai, nón bucket, khăn choàng cổ thời trang.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&q=80',
+      },
+      {
+        name: 'Đồ mặc nhà & Đồ ngủ',
+        slug: 'do-mac-nha-do-ngu',
+        description:
+          'Bộ đồ mặc nhà chất liệu lụa và cotton mềm mại, dễ chịu.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80',
+      },
+      {
+        name: 'Tất vớ & Phụ kiện nhỏ',
+        slug: 'tat-vo-phu-kien-nho',
+        description:
+          'Tất cổ cao, tất lười kháng khuẩn khử mùi cao cấp.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?w=500&q=80',
+      },
+      {
+        name: 'Nước hoa & Chăm sóc cá nhân',
+        slug: 'nuoc-hoa-cham-soc-ca-nhan',
+        description:
+          'Nước hoa nam nữ lưu hương lâu, xịt thơm cơ thể chính hãng.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&q=80',
+      },
+      {
+        name: 'Phụ kiện công nghệ',
+        slug: 'phu-kien-cong-nghe',
+        description:
+          'Ốp lưng, bao da laptop, cáp sạc và phụ kiện tiện ích hàng ngày.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80',
+      },
+    ];
+  }
+
+  /**
+   * Tạo 15 danh mục sản phẩm mẫu ban đầu
+   */
+  async createSampleCategories() {
+    this.logger.log('Bắt đầu khởi tạo 15 danh mục mẫu...');
+
+    const sampleCategories = this.getSampleCategoriesData();
+
+    const result = await this.prisma.category.createMany({
+      data: sampleCategories,
+      skipDuplicates: true,
+    });
+
+    this.logger.log(`Đã tạo thành công ${result.count} danh mục mẫu.`);
+    return result;
+  }
+
+  /**
+   * Bổ sung ảnh mẫu mặc định cho các danh mục hiện có chưa có imageUrl
+   */
+  async assignDefaultImagesToExistingCategories() {
+    const categoriesWithoutImage = await this.prisma.category.findMany({
+      where: { imageUrl: null },
+    });
+    if (categoriesWithoutImage.length === 0) return;
+
+    const sampleList = this.getSampleCategoriesData();
+    const bySlug = new Map(sampleList.map((item) => [item.slug, item.imageUrl]));
+
+    for (let i = 0; i < categoriesWithoutImage.length; i++) {
+      const cat = categoriesWithoutImage[i];
+      const fallbackUrl =
+        bySlug.get(cat.slug) || sampleList[i % sampleList.length].imageUrl;
+      await this.prisma.category.update({
+        where: { id: cat.id },
+        data: { imageUrl: fallbackUrl },
+      });
+    }
+    this.logger.log(
+      `Đã cập nhật ảnh đại diện mẫu cho ${categoriesWithoutImage.length} danh mục hiện có.`,
+    );
+  }
+
+  /**
+   * Gán danh mục mặc định cho các sản phẩm chưa có categoryId
+   */
+  async assignDefaultCategoriesToExistingProducts() {
+    const productsWithoutCategory = await this.prisma.product.findMany({
+      where: { categoryId: null },
+    });
+    if (productsWithoutCategory.length === 0) return;
+
+    const categories = await this.prisma.category.findMany({
+      orderBy: { id: 'asc' },
+    });
+    if (categories.length === 0) return;
+
+    for (let i = 0; i < productsWithoutCategory.length; i++) {
+      const product = productsWithoutCategory[i];
+      const category = categories[i % categories.length];
+      await this.prisma.product.update({
+        where: { id: product.id },
+        data: { categoryId: category.id },
+      });
+    }
+    this.logger.log(
+      `Đã gán danh mục cho ${productsWithoutCategory.length} sản phẩm hiện có.`,
+    );
+  }
+
+  /**
    * Tạo danh sách sản phẩm mẫu ban đầu
    */
   async createSampleProducts() {
     this.logger.log('Bắt đầu khởi tạo các sản phẩm mẫu...');
+
+    const categories = await this.prisma.category.findMany({
+      orderBy: { id: 'asc' },
+    });
+    const getCatId = (index: number) =>
+      categories.length > 0 ? categories[index % categories.length].id : null;
 
     const sampleProducts = [
       {
@@ -209,6 +433,7 @@ export class AppService implements OnModuleInit {
         quantity: 120,
         imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(0),
       },
       {
         name: 'Quần Jean Slimfit Co Giãn 4 Chiều',
@@ -218,6 +443,7 @@ export class AppService implements OnModuleInit {
         quantity: 85,
         imageUrl: 'https://images.unsplash.com/photo-1542272604-780c96856592?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(1),
       },
       {
         name: 'Giày Sneaker Phố Classic White',
@@ -227,6 +453,7 @@ export class AppService implements OnModuleInit {
         quantity: 40,
         imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(3),
       },
       {
         name: 'Áo Khoác Bomber Gió Kháng Nước',
@@ -236,6 +463,7 @@ export class AppService implements OnModuleInit {
         quantity: 60,
         imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(2),
       },
       {
         name: 'Balo Laptop Chống Nước 15.6 inch',
@@ -245,6 +473,7 @@ export class AppService implements OnModuleInit {
         quantity: 35,
         imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(4),
       },
       {
         name: 'Đồng Hồ Thể Thao Digital Chrono',
@@ -254,6 +483,7 @@ export class AppService implements OnModuleInit {
         quantity: 50,
         imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(5),
       },
       {
         name: 'Kính Mát Unisex Chống Tia UV400',
@@ -263,6 +493,7 @@ export class AppService implements OnModuleInit {
         quantity: 75,
         imageUrl: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80',
         isActive: true,
+        categoryId: getCatId(6),
       },
       {
         name: 'Ví Da Nam Mini Dáng Đứng',
@@ -272,6 +503,7 @@ export class AppService implements OnModuleInit {
         quantity: 0,
         imageUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&q=80',
         isActive: false,
+        categoryId: getCatId(7),
       },
     ];
 

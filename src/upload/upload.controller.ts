@@ -39,6 +39,31 @@ export class UploadController {
   }
 
   /**
+   * API tải lên hình ảnh danh mục sản phẩm
+   * Lưu vật lý vào: public/category/
+   * URL truy cập: /public/category/<tên_file>
+   */
+  @Post('category')
+  @UseInterceptors(
+    FileInterceptor('file', createMulterOptions('category', 'cat')),
+  )
+  uploadCategoryImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn file hình ảnh để tải lên');
+    }
+    return this.uploadService.formatFileResponse(file, 'category');
+  }
+
+  // Alias cho upload ảnh danh mục
+  @Post('category-image')
+  @UseInterceptors(
+    FileInterceptor('file', createMulterOptions('category', 'cat')),
+  )
+  uploadCategoryImageAlias(@UploadedFile() file: Express.Multer.File) {
+    return this.uploadCategoryImage(file);
+  }
+
+  /**
    * API tải lên avatar / ảnh người dùng
    * Lưu vật lý vào: public/user/
    * URL truy cập: /public/user/<tên_file>

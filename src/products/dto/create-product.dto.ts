@@ -46,4 +46,10 @@ export class CreateProductDto {
   })
   @IsBoolean({ message: 'Trạng thái hoạt động phải là kiểu boolean' })
   isActive?: boolean;
+
+  @IsNotEmpty({ message: 'Vui lòng chọn danh mục sản phẩm' })
+  @Type(() => Number)
+  @IsInt({ message: 'Mã danh mục phải là số nguyên' })
+  @Min(1, { message: 'Vui lòng chọn danh mục sản phẩm hợp lệ' })
+  categoryId: number;
 }

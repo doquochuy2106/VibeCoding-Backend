@@ -1,7 +1,7 @@
-import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class FindProductDto {
+export class FindCategoryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -21,27 +21,6 @@ export class FindProductDto {
   @IsOptional()
   @IsString()
   name?: string;
-
-  @IsOptional()
-  @IsString()
-  isActive?: string; // 'all' | 'true' | 'false'
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  minPrice?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  maxPrice?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  categoryId?: number;
 
   @IsOptional()
   @IsString()
